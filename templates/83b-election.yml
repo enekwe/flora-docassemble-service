@@ -1,0 +1,100 @@
+---
+metadata:
+  title: IRS Form 83(b) Election
+  short title: 83(b) Election
+  description: |
+    Election to include in gross income in year of transfer of property
+    pursuant to Section 83(b) of the Internal Revenue Code
+---
+objects:
+  - taxpayer: Individual
+  - company: Organization
+---
+mandatory: True
+question: |
+  Taxpayer Information
+subquestion: |
+  Please provide your personal information for the 83(b) election.
+fields:
+  - First Name: taxpayer.name.first
+  - Last Name: taxpayer.name.last
+  - Social Security Number: taxpayer.ssn
+    help: |
+      Your SSN is required for IRS filing
+  - Street Address: taxpayer.address.address
+  - City: taxpayer.address.city
+  - State: taxpayer.address.state
+    code: |
+      states_list()
+  - ZIP Code: taxpayer.address.zip
+    datatype: integer
+---
+mandatory: True
+question: |
+  Company and Stock Grant Information
+subquestion: |
+  Provide details about the company and the stock grant.
+fields:
+  - Company Name: company.name
+  - Company Address: company.address.address
+  - City: company.address.city
+  - State: company.address.state
+    code: |
+      states_list()
+  - ZIP Code: company.address.zip
+    datatype: integer
+  - Grant Date: grant_date
+    datatype: date
+    help: |
+      The date you received the stock grant
+  - Number of Shares: shares_granted
+    datatype: integer
+    min: 1
+  - Price Per Share Paid: price_per_share
+    datatype: currency
+  - Fair Market Value Per Share: fmv_per_share
+    datatype: currency
+    help: |
+      The fair market value at the time of grant
+---
+code: |
+  total_consideration = shares_granted * price_per_share
+  total_fmv = shares_granted * fmv_per_share
+  taxable_amount = total_fmv - total_consideration
+---
+mandatory: True
+question: |
+  Your 83(b) Election is Ready
+subquestion: |
+  Your 83(b) election has been prepared based on the information provided.
+
+  **Summary:**
+
+  - Shares Granted: ${ shares_granted }
+  - Total Consideration Paid: ${ currency(total_consideration) }
+  - Total Fair Market Value: ${ currency(total_fmv) }
+  - Taxable Amount: ${ currency(taxable_amount) }
+
+  **Important:** You must file this election with the IRS within 30 days
+  of the grant date (${ grant_date.format('MMMM d, yyyy') }).
+
+  Deadline: ${ (grant_date + date_interval(days=30)).format('MMMM d, yyyy') }
+attachment:
+  - name: 83(b) Election
+    filename: 83b_election_${ taxpayer.name.last }
+    pdf template file: 83b_election_template.pdf
+    fields:
+      - taxpayer_name: ${ taxpayer.name.full() }
+      - taxpayer_ssn: ${ taxpayer.ssn }
+      - taxpayer_address: ${ taxpayer.address.on_one_line() }
+      - company_name: ${ company.name }
+      - company_address: ${ company.address.on_one_line() }
+      - grant_date: ${ grant_date.format('MM/dd/yyyy') }
+      - shares_granted: ${ shares_granted }
+      - price_per_share: ${ currency(price_per_share) }
+      - total_consideration: ${ currency(total_consideration) }
+      - fmv_per_share: ${ currency(fmv_per_share) }
+      - total_fmv: ${ currency(total_fmv) }
+      - taxable_amount: ${ currency(taxable_amount) }
+      - signature_date: ${ today().format('MM/dd/yyyy') }
+---

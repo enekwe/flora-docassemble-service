@@ -1,0 +1,205 @@
+---
+metadata:
+  title: Employment Agreement
+  short title: Employment Agreement
+  description: |
+    Comprehensive employment agreement for startup employees
+---
+objects:
+  - employee: Individual
+  - employer: Organization
+---
+mandatory: True
+question: |
+  Employee Information
+subquestion: |
+  Provide information about the employee.
+fields:
+  - First Name: employee.name.first
+  - Last Name: employee.name.last
+  - Email: employee.email
+    datatype: email
+  - Phone: employee.phone_number
+  - Street Address: employee.address.address
+  - City: employee.address.city
+  - State: employee.address.state
+    code: |
+      states_list()
+  - ZIP Code: employee.address.zip
+    datatype: integer
+---
+mandatory: True
+question: |
+  Employer Information
+fields:
+  - Company Name: employer.name
+  - Address: employer.address.address
+  - City: employer.address.city
+  - State: employer.address.state
+    code: |
+      states_list()
+  - ZIP: employer.address.zip
+    datatype: integer
+---
+mandatory: True
+question: |
+  Employment Terms
+subquestion: |
+  Define the basic terms of employment.
+fields:
+  - Job Title: job_title
+  - Department: department
+    required: False
+  - Start Date: start_date
+    datatype: date
+  - Employment Type: employment_type
+    choices:
+      - Full-Time
+      - Part-Time
+      - Contract
+  - Reports To: reports_to
+    help: |
+      Title of the person this employee reports to
+---
+mandatory: True
+question: |
+  Compensation
+subquestion: |
+  Define compensation structure.
+fields:
+  - Annual Salary: annual_salary
+    datatype: currency
+  - Pay Frequency: pay_frequency
+    choices:
+      - Monthly
+      - Bi-weekly
+      - Semi-monthly
+  - Eligible for Bonus: bonus_eligible
+    datatype: yesno
+  - Target Bonus Percentage: target_bonus
+    datatype: number
+    show if: bonus_eligible
+    help: |
+      As a percentage of annual salary
+---
+mandatory: True
+question: |
+  Equity Compensation
+subquestion: |
+  Define stock options or equity grants if applicable.
+fields:
+  - Include Equity Compensation: has_equity
+    datatype: yesno
+  - Stock Options Granted: stock_options
+    datatype: integer
+    show if: has_equity
+    help: |
+      Number of stock options
+  - Exercise Price Per Share: exercise_price
+    datatype: currency
+    show if: has_equity
+  - Vesting Schedule: vesting_schedule
+    show if: has_equity
+    choices:
+      - 4 year vest with 1 year cliff: standard
+      - Custom: custom
+  - Vesting Period (months): vesting_period
+    datatype: integer
+    default: 48
+    show if:
+      variable: vesting_schedule
+      is: custom
+  - Cliff Period (months): cliff_period
+    datatype: integer
+    default: 12
+    show if:
+      variable: vesting_schedule
+      is: custom
+---
+mandatory: True
+question: |
+  Benefits
+fields:
+  - Health Insurance: health_insurance
+    datatype: yesno
+  - Dental Insurance: dental_insurance
+    datatype: yesno
+  - Vision Insurance: vision_insurance
+    datatype: yesno
+  - 401(k) Plan: retirement_plan
+    datatype: yesno
+  - Company Match Percentage: company_match
+    datatype: number
+    show if: retirement_plan
+  - Paid Time Off (days/year): pto_days
+    datatype: integer
+    default: 15
+  - Additional Benefits: additional_benefits
+    datatype: area
+    required: False
+---
+mandatory: True
+question: |
+  Confidentiality and IP Assignment
+fields:
+  - Confidentiality Agreement: confidentiality
+    datatype: yesno
+    default: True
+  - Intellectual Property Assignment: ip_assignment
+    datatype: yesno
+    default: True
+  - Non-Compete Agreement: non_compete
+    datatype: yesno
+  - Non-Compete Duration (months): non_compete_duration
+    datatype: integer
+    default: 12
+    show if: non_compete
+  - Non-Solicitation Agreement: non_solicit
+    datatype: yesno
+---
+mandatory: True
+question: |
+  Termination Provisions
+fields:
+  - At-Will Employment: at_will
+    datatype: yesno
+    default: True
+  - Notice Period (days): notice_period
+    datatype: integer
+    default: 14
+  - Severance Pay: has_severance
+    datatype: yesno
+  - Severance Period (months of salary): severance_months
+    datatype: number
+    show if: has_severance
+---
+code: |
+  monthly_salary = annual_salary / 12
+  biweekly_salary = annual_salary / 26
+  semimonthly_salary = annual_salary / 24
+---
+mandatory: True
+question: |
+  Employment Agreement Complete
+subquestion: |
+  Your employment agreement is ready for review.
+
+  **Employee:** ${ employee.name.full() }
+
+  **Position:** ${ job_title }
+
+  **Salary:** ${ currency(annual_salary) }
+
+  % if has_equity:
+  **Stock Options:** ${ stock_options } options
+  % endif
+
+  **Start Date:** ${ start_date.format('MMMM d, yyyy') }
+attachment:
+  - name: Employment Agreement
+    filename: employment_agreement_${ employee.name.last }
+    docx template file: employment_agreement_template.docx
+    valid formats:
+      - pdf
+      - docx
+---

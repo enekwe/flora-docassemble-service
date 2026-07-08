@@ -1,0 +1,226 @@
+---
+metadata:
+  title: Stock Purchase Agreement
+  short title: SPA
+  description: |
+    Stock Purchase Agreement for company stock issuance
+---
+objects:
+  - purchaser: Individual
+  - company: Organization
+---
+mandatory: True
+question: |
+  Purchaser Information
+subquestion: |
+  Provide information about the stock purchaser.
+fields:
+  - Full Name: purchaser.name.text
+  - Email: purchaser.email
+    datatype: email
+  - Phone: purchaser.phone_number
+    required: False
+  - Street Address: purchaser.address.address
+  - City: purchaser.address.city
+  - State: purchaser.address.state
+    code: |
+      states_list()
+  - ZIP Code: purchaser.address.zip
+    datatype: integer
+---
+mandatory: True
+question: |
+  Company Information
+fields:
+  - Company Name: company.name
+  - State of Incorporation: company.state
+    code: |
+      states_list()
+  - Company Address: company.address.address
+  - City: company.address.city
+  - State: company.address.state
+    code: |
+      states_list()
+  - ZIP: company.address.zip
+    datatype: integer
+---
+mandatory: True
+question: |
+  Stock Purchase Details
+subquestion: |
+  Provide details about the stock being purchased.
+fields:
+  - Number of Shares: shares_purchased
+    datatype: integer
+    min: 1
+  - Price Per Share: price_per_share
+    datatype: currency
+  - Stock Class: stock_class
+    choices:
+      - Common Stock
+      - Preferred Stock
+      - Series A Preferred
+      - Series B Preferred
+  - Par Value Per Share: par_value
+    datatype: currency
+    default: 0.0001
+---
+code: |
+  total_purchase_price = shares_purchased * price_per_share
+---
+mandatory: True
+question: |
+  Payment Terms
+fields:
+  - Payment Method: payment_method
+    choices:
+      - Cash
+      - Check
+      - Wire Transfer
+      - Promissory Note
+      - Services Rendered
+  - Payment Due Date: payment_due_date
+    datatype: date
+    default: ${ today() }
+---
+mandatory: True
+question: |
+  Vesting Schedule
+subquestion: |
+  Define if the shares are subject to vesting.
+fields:
+  - Subject to Vesting: has_vesting
+    datatype: yesno
+    help: |
+      Vesting requires the purchaser to remain with the company
+      to fully own the shares
+  - Vesting Period (months): vesting_period
+    datatype: integer
+    default: 48
+    show if: has_vesting
+    help: |
+      Total time for shares to fully vest (typically 48 months / 4 years)
+  - Cliff Period (months): vesting_cliff
+    datatype: integer
+    default: 12
+    show if: has_vesting
+    help: |
+      Minimum time before any shares vest (typically 12 months)
+  - Vesting Frequency: vesting_frequency
+    show if: has_vesting
+    choices:
+      - Monthly
+      - Quarterly
+      - Annually
+---
+mandatory: True
+question: |
+  Repurchase Rights
+fields:
+  - Company Has Repurchase Right: has_repurchase
+    datatype: yesno
+    help: |
+      Right of company to buy back unvested shares upon termination
+  - Repurchase Price: repurchase_price_method
+    show if: has_repurchase
+    choices:
+      - Original Purchase Price: original
+      - Fair Market Value: fmv
+      - Lesser of Purchase Price or FMV: lesser
+---
+mandatory: True
+question: |
+  Transfer Restrictions
+fields:
+  - Right of First Refusal: right_of_first_refusal
+    datatype: yesno
+    default: True
+    help: |
+      Company has first right to purchase before third parties
+  - Co-Sale Rights: co_sale_rights
+    datatype: yesno
+    default: True
+    help: |
+      Other shareholders can participate in sales to third parties
+  - Lock-Up Period (months): lockup_period
+    datatype: integer
+    default: 0
+    help: |
+      Period during which shares cannot be sold
+---
+mandatory: True
+question: |
+  Representations and Warranties
+fields:
+  - Accredited Investor: is_accredited
+    datatype: yesno
+    help: |
+      Required for certain securities transactions
+  - Investment Intent: investment_intent
+    choices:
+      - Investment (not for resale): investment
+      - Both investment and potential resale: both
+  - Acknowledgment of Risk: acknowledges_risk
+    datatype: yesno
+    default: True
+---
+mandatory: True
+question: |
+  Additional Terms
+fields:
+  - Governing Law State: governing_law_state
+    code: |
+      states_list()
+    default: ${ company.state }
+  - Arbitration Clause: has_arbitration
+    datatype: yesno
+    default: True
+  - Drag-Along Rights: drag_along
+    datatype: yesno
+    default: True
+    help: |
+      Majority shareholders can force minority to join in a sale
+---
+code: |
+  if has_vesting:
+    if vesting_frequency == 'Monthly':
+      vesting_installments = vesting_period
+    elif vesting_frequency == 'Quarterly':
+      vesting_installments = vesting_period / 3
+    else:
+      vesting_installments = vesting_period / 12
+  else:
+    vesting_installments = 1
+---
+mandatory: True
+question: |
+  Stock Purchase Agreement Complete
+subquestion: |
+  Your Stock Purchase Agreement is ready for review and execution.
+
+  **Purchaser:** ${ purchaser.name.text }
+
+  **Shares:** ${ shares_purchased } shares of ${ stock_class }
+
+  **Price Per Share:** ${ currency(price_per_share) }
+
+  **Total Purchase Price:** ${ currency(total_purchase_price) }
+
+  % if has_vesting:
+  **Vesting:** ${ vesting_period } months with ${ vesting_cliff } month cliff
+  % else:
+  **Vesting:** None (fully vested at purchase)
+  % endif
+
+  % if has_repurchase:
+  **Repurchase Right:** Yes (at ${ repurchase_price_method })
+  % endif
+attachment:
+  - name: Stock Purchase Agreement
+    filename: stock_purchase_agreement_${ purchaser.name.text.replace(' ', '_') }
+    docx template file: stock_purchase_agreement_template.docx
+    valid formats:
+      - pdf
+      - docx
+    variable name: stock_purchase_agreement
+---

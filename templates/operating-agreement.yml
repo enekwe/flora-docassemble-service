@@ -1,0 +1,144 @@
+---
+metadata:
+  title: LLC Operating Agreement
+  short title: Operating Agreement
+  description: |
+    Comprehensive operating agreement for Limited Liability Companies
+---
+objects:
+  - company: Organization
+  - members: DAList.using(object_type=Individual, minimum_number=1)
+---
+mandatory: True
+question: |
+  Company Information
+subquestion: |
+  Provide basic information about your LLC.
+fields:
+  - Company Name: company.name
+    help: |
+      Full legal name of the LLC
+  - State of Formation: company.state
+    code: |
+      states_list()
+  - Formation Date: company.formation_date
+    datatype: date
+  - Principal Office Address: company.address.address
+  - City: company.address.city
+  - State: company.address.state
+    code: |
+      states_list()
+  - ZIP Code: company.address.zip
+    datatype: integer
+  - Registered Agent Name: registered_agent_name
+  - Registered Agent Address: registered_agent_address
+---
+mandatory: True
+question: |
+  LLC Members
+subquestion: |
+  Add all members of the LLC and their ownership percentages.
+
+  % if members.number() > 0:
+  **Total Ownership:** ${ total_ownership }%
+  % endif
+list collect: True
+fields:
+  - Member Name: members[i].name.text
+  - Email: members[i].email
+    datatype: email
+  - Address: members[i].address.address
+  - City: members[i].address.city
+  - State: members[i].address.state
+    code: |
+      states_list()
+  - ZIP: members[i].address.zip
+    datatype: integer
+  - Ownership Percentage: members[i].ownership
+    datatype: number
+    min: 0
+    max: 100
+  - Capital Contribution: members[i].contribution
+    datatype: currency
+    help: |
+      Initial capital contribution to the LLC
+---
+code: |
+  total_ownership = sum([m.ownership for m in members])
+---
+mandatory: True
+question: |
+  Management Structure
+subquestion: |
+  Define how the LLC will be managed.
+fields:
+  - Management Type: management_type
+    choices:
+      - Member-Managed: member_managed
+      - Manager-Managed: manager_managed
+    help: |
+      Member-managed: All members participate in management.
+      Manager-managed: One or more designated managers run the company.
+  - Manager Name: manager_name
+    show if:
+      variable: management_type
+      is: manager_managed
+  - Fiscal Year End: fiscal_year_end
+    datatype: date
+    default: ${ today().replace(month=12, day=31) }
+---
+mandatory: True
+question: |
+  Capital and Profits
+subquestion: |
+  Define capital contribution and profit distribution rules.
+fields:
+  - Profit Distribution Method: profit_distribution
+    choices:
+      - Pro-rata based on ownership: pro_rata
+      - Custom distribution: custom
+  - Additional Capital Contributions Required: additional_capital_required
+    datatype: yesno
+  - Voting Requirements for Major Decisions: voting_threshold
+    datatype: number
+    default: 66.67
+    help: |
+      Percentage of ownership required to approve major decisions
+---
+mandatory: True
+question: |
+  Transfer of Membership Interests
+fields:
+  - Allow Transfer of Interests: allow_transfer
+    datatype: yesno
+  - Require Member Approval for Transfers: require_approval
+    datatype: yesno
+    show if: allow_transfer
+  - Right of First Refusal: right_of_first_refusal
+    datatype: yesno
+    show if: allow_transfer
+    help: |
+      Existing members have the right to purchase before outside parties
+---
+mandatory: True
+question: |
+  Operating Agreement Complete
+subquestion: |
+  Your LLC Operating Agreement is ready for review.
+
+  **Company:** ${ company.name }
+
+  **Members:** ${ members.number() }
+
+  **Management:** ${ management_type }
+
+  **Total Capital Contributions:** ${ currency(sum([m.contribution for m in members])) }
+attachment:
+  - name: LLC Operating Agreement
+    filename: operating_agreement_${ company.name.replace(' ', '_') }
+    docx template file: operating_agreement_template.docx
+    valid formats:
+      - pdf
+      - docx
+    variable name: operating_agreement
+---
