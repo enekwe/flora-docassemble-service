@@ -45,6 +45,21 @@ const startServer = async () => {
     // Connect to database
     await connectDB();
 
+    // Import and start sync service
+    const syncService = require('./services/syncService');
+
+    // Start background sync job (5 minute interval)
+    if (process.env.ENABLE_SYNC_SERVICE !== 'false') {
+      const syncIntervalMs = parseInt(process.env.SYNC_INTERVAL_MS) || 5 * 60 * 1000;
+      syncService.startBackgroundSync(syncIntervalMs);
+      logger.info('Sync service started', {
+        intervalMs: syncIntervalMs,
+        intervalMinutes: syncIntervalMs / 60000
+      });
+    } else {
+      logger.info('Sync service disabled by configuration');
+    }
+
     // Start listening
     app.listen(PORT, () => {
       logger.info(`Flora DocAssemble Service running on port ${PORT}`);
@@ -52,6 +67,7 @@ const startServer = async () => {
       logger.info(`Database: ${process.env.MONGODB_URI || 'mongodb://localhost:27017/flora-docassemble'}`);
       logger.info(`S3 Bucket: ${process.env.S3_BUCKET_NAME || 'flora-documents'}`);
       logger.info(`DocAssemble URL: ${process.env.DOCASSEMBLE_URL || 'https://docassemble.org'}`);
+      logger.info(`Service Base URL: ${process.env.SERVICE_BASE_URL || 'http://localhost:3013'}`);
     });
   } catch (error) {
     logger.error(`Failed to start server: ${error.message}`);
@@ -76,11 +92,15 @@ process.on('uncaughtException', (err) => {
 // Graceful shutdown
 process.on('SIGTERM', () => {
   logger.info('SIGTERM signal received: closing HTTP server');
+  const syncService = require('./services/syncService');
+  syncService.stopBackgroundSync();
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
   logger.info('SIGINT signal received: closing HTTP server');
+  const syncService = require('./services/syncService');
+  syncService.stopBackgroundSync();
   process.exit(0);
 });
 
