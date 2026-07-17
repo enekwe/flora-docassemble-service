@@ -19,15 +19,16 @@ COPY . .
 # Create logs directory
 RUN mkdir -p logs
 
-# Expose port
-EXPOSE 3013
-
 # Set environment
 ENV NODE_ENV=production
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3013/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+# EXPOSE port removed — Railway dynamically assigns and injects PORT
+# Hardcoding EXPOSE can interfere with Railway's port injection
+# See: https://docs.railway.app/deploy/deployments#port-variable
+
+# Health check disabled in Dockerfile — Railway provides its own healthcheck mechanism
+# Railway will use the healthcheckPath from railway.json (/health)
+# Dockerfile HEALTHCHECK conflicts with Railway's healthcheck probe
 
 # Start application
 CMD ["npm", "start"]
